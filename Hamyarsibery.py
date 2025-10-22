@@ -3,8 +3,8 @@ import requests
 
 app = Flask(__name__)
 
-TOKEN = "توکن_ربات_روبیکا"
-GEMINI_API_KEY = "کلید_API_Gemini"  # از Google AI Studio بگیر
+TOKEN = "EBEEH0AZYPISRTPOBIDBJMMKYPFOQIXMZVWHBCWEQTKXQBGFRISLZJWSEWELKQNG"
+GEMINI_API_KEY = "AIzaSyAa984AXtLr22aelNZwCf2hDnkEDMLj1sM"  # از Google AI Studio بگیر
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY
 
 def send_message(chat_id, text):
