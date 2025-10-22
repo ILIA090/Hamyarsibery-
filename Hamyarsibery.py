@@ -1,83 +1,95 @@
+# Hamyarsibery.py
 from flask import Flask, request, jsonify
 import requests
 
 app = Flask(__name__)
 
-# =====================
-# تنظیمات
-# =====================
+# =======================
+# تنظیمات بات و Gemini
+# =======================
 ROUBIKA_TOKEN = "EBEEH0AZYPISRTPOBIDBJMMKYPFOQIXMZVWHBCWEQTKXQBGFRISLZJWSEWELKQNG"
 GEMINI_KEY = "AIzaSyAa984AXtLr22aelNZwCf2hDnkEDMLj1sM"
-ENDPOINT = "https://hamyarsibery.onrender.com/receiveUpdate"  # مسیر webhook
+ENDPOINT = "https://hamyarsibery.onrender.com/receiveUpdate"  # آدرس سرور Render شما
 
-# =====================
-# ست کردن webhook روبیکا
-# =====================
+# =======================
+# ست کردن Webhook روی روبیکا
+# =======================
 def set_webhook():
     url = f"https://botapi.rubika.ir/v3/{ROUBIKA_TOKEN}/updateBotEndpoint"
-    data = {"update_url": ENDPOINT}  # توجه: بعضی نسخه‌ها update_url می‌خوان
+    data = {"update_url": ENDPOINT}  # 👈 باید update_url باشه
     try:
         r = requests.post(url, json=data)
         print("Webhook response:", r.text)
     except Exception as e:
         print("Webhook error:", e)
 
-# =====================
-# اتصال به Gemini AI
-# =====================
-def get_gemini_response(prompt):
-    url = "https://api.gemini.ai/v1/chat"  # فرضی، ممکنه endpoint دقیق فرق کنه
+# اجرا یکبار برای ست کردن webhook
+set_webhook()
+
+# =======================
+# تابع پاسخ به کاربران
+# =======================
+def ask_gemini(prompt):
+    """
+    ارسال متن به Gemini و دریافت پاسخ
+    """
     headers = {
         "Authorization": f"Bearer {GEMINI_KEY}",
         "Content-Type": "application/json"
     }
-    data = {"prompt": prompt}
+    data = {
+        "prompt": prompt,
+        "max_tokens": 200
+    }
     try:
-        r = requests.post(url, json=data, headers=headers)
-        resp = r.json()
-        return resp.get("response", "Gemini پاسخی نداد 🤖")
+        r = requests.post("https://api.gemini.ai/v1/complete", json=data, headers=headers)
+        if r.status_code == 200:
+            resp = r.json()
+            return resp.get("text", "Gemini پاسخی نداد 😔")
+        else:
+            return f"Gemini خطا داد: {r.text}"
     except Exception as e:
-        print("Gemini error:", e)
-        return "مشکل در ارتباط با Gemini 🤖"
+        return f"خطا در ارتباط با Gemini: {e}"
 
-# =====================
-# ارسال پیام به روبیکا
-# =====================
-def send_text(chat_id, text):
-    url = f"https://botapi.rubika.ir/v3/{ROUBIKA_TOKEN}/sendMessage"
-    data = {"chat_id": chat_id, "text": text}
-    try:
-        requests.post(url, json=data)
-    except Exception as e:
-        print("Send message error:", e)
-
-# =====================
-# مسیر دریافت پیام‌ها
-# =====================
+# =======================
+# دریافت آپدیت از روبیکا
+# =======================
 @app.route("/receiveUpdate", methods=["POST"])
 def receive_update():
-    data = request.json
-    print("پیام دریافتی:", data)
-
-    # بررسی پیام
     try:
-        text = data["update"]["new_message"]["text"]
-        chat_id = data["update"]["chat_id"]
-    except:
-        return jsonify({"ok": True})
+        data = request.json
+        if "update" in data and data["update"]["type"] == "NewMessage":
+            chat_id = data["update"]["chat_id"]
+            message_text = data["update"]["new_message"]["text"]
 
-    if text.startswith("/hamyar"):
-        prompt = text.replace("/hamyar", "").strip()
-        if not prompt:
-            prompt = "سلام!"
-        response = get_gemini_response(prompt)
-        send_text(chat_id, response)
+            # فقط اگر پیام /hamyar شروع شد پاسخ بده
+            if message_text.startswith("/hamyar"):
+                # حذف /hamyar از متن و ارسال به Gemini
+                prompt = message_text[len("/hamyar"):].strip()
+                if prompt == "":
+                    prompt = "سلام، میخوای چه کمکی انجام بدم؟"
+                answer = ask_gemini(prompt)
 
-    return jsonify({"ok": True})
+                # ارسال جواب به روبیکا
+                send_url = f"https://botapi.rubika.ir/v3/{ROUBIKA_TOKEN}/sendMessage"
+                send_data = {
+                    "chat_id": chat_id,
+                    "text": answer
+                }
+                requests.post(send_url, json=send_data)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-# =====================
-# اجرای سرور
-# =====================
+# =======================
+# مسیر تست ساده
+# =======================
+@app.route("/", methods=["GET"])
+def index():
+    return "🤖 Rubika AI bot by ilia manzari is running!"
+
+# =======================
+# اجرای Flask
+# =======================
 if __name__ == "__main__":
-    set_webhook()
     app.run(host="0.0.0.0", port=8080)
