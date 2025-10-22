@@ -8,10 +8,10 @@ import json
 app = Flask(__name__)
 
 # 👇 توکن ربات روبیکا خودت
-RUBIKA_TOKEN = "توکن_روبیکا_خودت"
+RUBIKA_TOKEN = "EBEEH0AZYPISRTPOBIDBJMMKYPFOQIXMZVWHBCWEQTKXQBGFRISLZJWSEWELKQNG"
 
 # 👇 کلید Gemini (از Google AI Studio)
-GEMINI_KEY = "کلید_Gemini_خودت"
+GEMINI_KEY = "AIzaSyAa984AXtLr22aelNZwCf2hDnkEDMLj1sM"
 
 # -------------------------------
 # 🌐 روت اصلی (برای تست سرور)
